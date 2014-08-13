@@ -125,8 +125,9 @@ namespace json {
                     }
                     std::cout << "Unexpected character " << *cur << "\n";
                     return NULL; //BAD
-                case '\\':
-                    if (*cur == '\\') {
+                case '/':
+                    if (cur[1] == '/') {
+						cur++;
                         while (*(cur++) != '\n') { }
                         break;
                     }
