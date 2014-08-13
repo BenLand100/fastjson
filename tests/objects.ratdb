@@ -8,7 +8,7 @@ noquotes: 42
 onefield: 1,
 twofield: 2
 }
-NULL
+null
 {
 field: { nested: 1 }
 }

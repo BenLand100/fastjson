@@ -123,13 +123,25 @@ namespace json {
                     return readArray();
                 case '"':
                     return readString();
-                case 'N':
-                    if (cur[1] == 'U' && cur[2] == 'L' && cur[3] == 'L') {
+                case 'n': //https://tools.ietf.org/rfc/rfc7159.txt
+                    if (cur[1] == 'u' && cur[2] == 'l' && cur[3] == 'l') {
                         cur+=4;
                         return new Value();
                     }
-                    throw parser_error(line,cur-lastbr,"Unexpected character " + *cur);
-                case '/':
+                    throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+                case 't': //https://tools.ietf.org/rfc/rfc7159.txt
+                    if (cur[1] == 'r' && cur[2] == 'u' && cur[3] == 'e') {
+                        cur+=4;
+                        return new Value(true);
+                    }
+                    throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+                case 'f': //https://tools.ietf.org/rfc/rfc7159.txt
+                    if (cur[1] == 'a' && cur[2] == 'l' && cur[3] == 's' && cur[4] == 'e') {
+                        cur+=5;
+                        return new Value(false);
+                    }
+                    throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+                case '/': //non-json comment
                     if (cur[1] == '/') {
 						cur++;
                         while (*(cur++) != '\n') { }
@@ -137,7 +149,7 @@ namespace json {
                     }
                     throw parser_error(line,cur-lastbr,"Malformed comment");
                 default:
-                    throw parser_error(line,cur-lastbr,"Unexpected character " + *cur);
+                    throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
             }
         }
         return NULL; //Really EOF - no more values to get
@@ -152,11 +164,12 @@ namespace json {
 				case 'e':
 					exp = true;
 					break;
-                case 'u':
+                case 'u': //non-json unsigned
                     *cur = '\0';
                     cur++;
                     return new Value((TUInteger)atoi(start));
-                case 'd':
+				case 'f': //non-json explicit real
+                case 'd': //non-json explicit real
                     *cur = '\0';
                     cur++;
                     return new Value((TReal)atof(start));
