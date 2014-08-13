@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 
 namespace json {
     
@@ -291,10 +292,6 @@ namespace json {
 		throw parser_error(line,cur-lastbr,"Reached EOF while parsing array");
     }
 
-    std::string Reader::unescapeString(std::string escaped) {
-        return escaped; //FIXME
-    }
-
     Writer::Writer(std::ostream &stream) : out(stream) {
         
     }
@@ -352,8 +349,56 @@ namespace json {
         }
     }
 
+	//https://tools.ietf.org/rfc/rfc7159.txt
     std::string Writer::escapeString(std::string unescaped) {
         return unescaped; //FIXME
+    }
+	
+	//https://tools.ietf.org/rfc/rfc7159.txt
+    std::string Reader::unescapeString(std::string escaped) {
+		if (escaped.find("\\") != std::string::npos) {
+			size_t last = 0, pos = 0;
+			std::stringstream unescaped;
+			while ((pos = escaped.find("\\",pos)) != std::string::npos) {
+				unescaped << escaped.substr(last,pos-last);
+				switch (escaped[pos+1]) {
+					case '"':
+					case '\\':
+					case '/':
+						unescaped << escaped[pos+1];
+						last = pos = pos+2;
+						break;
+					case 'b':
+						unescaped << '\b';
+						last = pos = pos+2;
+						break;
+					case 'f':
+						unescaped << '\f';
+						last = pos = pos+2;
+						break;
+					case 'n':
+						unescaped << '\n';
+						last = pos = pos+2;
+						break;
+					case 'r':
+						unescaped << '\r';
+						last = pos = pos+2;
+						break;
+					case 't':
+						unescaped << '\t';
+						last = pos = pos+2;
+						break;
+					case 'u':
+						throw parser_error(line,cur-lastbr,"Arbitrary unicode escapes not yet supported");
+					default:
+						throw parser_error(line,cur-lastbr,"Invalid escape sequence in string");
+				}
+			}
+			unescaped << escaped.substr(last);
+			return unescaped.str();
+		} else {
+			return escaped;
+		}
     }
     
 }
