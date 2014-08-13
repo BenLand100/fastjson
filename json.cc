@@ -145,9 +145,13 @@ namespace json {
     
     Value* Reader::readNumber() {
         bool real = false;
+		bool exp = false;
         char *start = cur;
         while (*cur) {
             switch (*cur) {
+				case 'e':
+					exp = true;
+					break;
                 case 'u':
                     *cur = '\0';
                     cur++;
@@ -176,7 +180,7 @@ namespace json {
                     char next = *cur;
                     *cur = '\0';
                     Value *val;
-                    if (real) {
+                    if (real || exp) {
                         val = new Value((TReal)atof(start));
                     } else {
                         val = new Value((TInteger)atoi(start));
