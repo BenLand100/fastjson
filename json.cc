@@ -351,7 +351,43 @@ namespace json {
 
 	//https://tools.ietf.org/rfc/rfc7159.txt
     std::string Writer::escapeString(std::string unescaped) {
-        return unescaped; //FIXME
+		std::stringstream escaped;
+		size_t last = 0, pos = 0, len = unescaped.length();
+		while (pos < len) {
+			switch (unescaped[pos]) {
+				case '"':
+				case '\\':
+				case '/':
+					escaped << unescaped.substr(last,pos-last) << '\\' << unescaped[pos];
+					last = pos+1;
+					break;
+				case '\b':
+					escaped << unescaped.substr(last,pos-last) << "\\b";
+					last = pos+1;
+					break;
+				case '\f':
+					escaped << unescaped.substr(last,pos-last) << "\\f";
+					last = pos+1;
+					break;
+				case '\n':
+					escaped << unescaped.substr(last,pos-last) << "\\n";
+					last = pos+1;
+					break;
+				case '\r': 
+					escaped << unescaped.substr(last,pos-last) << "\\r";
+					last = pos+1;
+					break;
+				case '\t':
+					escaped << unescaped.substr(last,pos-last) << "\\t";
+					last = pos+1;
+					break;
+				default:
+					if (unescaped[pos] < 0x20) throw parser_error(0,0,"Arbitrary unicode escapes not yet supported"); //FIXME
+			}
+			pos++;
+		}
+		escaped << unescaped.substr(last,pos-last);
+		return escaped.str();
     }
 	
 	//https://tools.ietf.org/rfc/rfc7159.txt
@@ -389,7 +425,7 @@ namespace json {
 						last = pos = pos+2;
 						break;
 					case 'u':
-						throw parser_error(line,cur-lastbr,"Arbitrary unicode escapes not yet supported");
+						throw parser_error(line,cur-lastbr,"Arbitrary unicode escapes not yet supported"); //FIXME
 					default:
 						throw parser_error(line,cur-lastbr,"Invalid escape sequence in string");
 				}
