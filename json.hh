@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stdexcept>
+#include <string>
 
 namespace json {
     
@@ -101,6 +103,13 @@ namespace json {
             } data;
     };
     
+	class parser_error : public std::runtime_error {
+		public:
+			const int line, pos;
+			inline explicit parser_error(const int line_, const int pos_, const std::string& desc) : std::runtime_error(desc), line(line_), pos(pos_)  { }
+			inline explicit parser_error(const int line_, const int pos_, const char* desc) : std::runtime_error(desc), line(line_), pos(pos_) { }
+	};
+	
     class Reader {
         public:
             //Reads the entire stream immediately
@@ -110,7 +119,8 @@ namespace json {
             Value* getValue();
             
         protected:
-            char *data,*cur;
+            char *data,*cur,*lastbr;
+			int line;
             
             std::string unescapeString(std::string string);
             

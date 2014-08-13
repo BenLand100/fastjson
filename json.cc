@@ -83,6 +83,8 @@ namespace json {
         cur = data;
         memcpy(data,ret.c_str(),ret.length());
         data[ret.length()] = '\0';
+		line = 1;
+		lastbr = cur;
     }
     
     Reader::~Reader() {
@@ -92,9 +94,11 @@ namespace json {
     Value *Reader::getValue() {
         while (*cur) {
             switch (*cur) {
-                case ' ':
                 case '\n':
+					line++;
                 case '\r':
+					lastbr = cur+1;
+                case ' ':
                 case '\t':
                     cur++;
                     break;
@@ -123,22 +127,19 @@ namespace json {
                         cur+=4;
                         return new Value();
                     }
-                    std::cout << "Unexpected character " << *cur << "\n";
-                    return NULL; //BAD
+                    throw parser_error(line,cur-lastbr,"Unexpected character " + *cur);
                 case '/':
                     if (cur[1] == '/') {
 						cur++;
                         while (*(cur++) != '\n') { }
                         break;
                     }
-                    std::cout << "Malformed comment\n";
-                    return NULL; //BAD
+                    throw parser_error(line,cur-lastbr,"Malformed comment");
                 default:
-                    std::cout << "Unexpected character " << *cur << "\n";
-                    return NULL; //BAD
+                    throw parser_error(line,cur-lastbr,"Unexpected character " + *cur);
             }
         }
-        return NULL; //EOF - no more values to get
+        return NULL; //Really EOF - no more values to get
     }
     
     Value* Reader::readNumber() {
@@ -184,8 +185,7 @@ namespace json {
                 }
             }
         }
-        std::cout << "Reached EOF while parsing numeric\n";
-        return NULL; //BAD
+		throw parser_error(line,cur-lastbr,"Reached EOF while parsing numeric");
     }
     
     Value* Reader::readString() {
@@ -200,8 +200,7 @@ namespace json {
                     return new Value(unescapeString(std::string(start)));
             }
         }
-        std::cout << "Reached EOF while parsing string\n";
-        return NULL; //BAD
+		throw parser_error(line,cur-lastbr,"Reached EOF while parsing string");
     }
     
     Value* Reader::readObject() {
@@ -226,21 +225,18 @@ namespace json {
                 case '}':
                     cur++;
                     if (key) {
-                        std::cout << "} found where value expected\n";
-                        return NULL; //BAD
+						throw parser_error(line,cur-lastbr,"} found where value expected");
                     }
                     return object;
                 case ',':
                     cur++;
                     if (key) {
-                        std::cout << ", found where value expected\n";
-                        return NULL; //BAD
+						throw parser_error(line,cur-lastbr,", found where value expected");
                     }
                     break;
                 case ':':
                     if (!key) {
-                        std::cout << ": found where field expected\n";
-                        return NULL; //BAD
+						throw parser_error(line,cur-lastbr,": found where field expected");
                     }
                     if (key && !keyfound) *cur = '\0';
                     cur++;
@@ -258,15 +254,13 @@ namespace json {
                     break;
                 default:
                     if (keyfound) {
-                        std::cout << *cur << " found where : expected\n";
-                        return NULL; //BAD
+						throw parser_error(line,cur-lastbr,*cur + " found where value expected");
                     }
                     if (!key) key = cur;
                     cur++;
             }
         }
-        std::cout << "Reached EOF while parsing object\n";
-        return NULL; //BAD
+		throw parser_error(line,cur-lastbr,"Reached EOF while parsing object");
     }
     
     Value* Reader::readArray() {
@@ -289,14 +283,12 @@ namespace json {
                 default:
                     next = getValue();
                     if (!next) {
-                        std::cout << "Malformed array elements\n";
-                        return NULL; //BAD
+						throw parser_error(line,cur-lastbr,"Malformed array elements");
                     }
                     array->data.array->push_back(next);
             }
         }
-        std::cout << "Reached EOF while parsing array\n";
-        return NULL; //BAD
+		throw parser_error(line,cur-lastbr,"Reached EOF while parsing array");
     }
 
     std::string Reader::unescapeString(std::string escaped) {
@@ -316,6 +308,7 @@ namespace json {
         out << '\n';
     }
     
+	//This could make prettier output
     void Writer::writeValue(Value *value) {
         switch (value->type) {
             case TINTEGER:
