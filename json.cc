@@ -80,7 +80,7 @@ namespace json {
 		delete data;
 	}
 
-	Value Reader::getValue() {
+	bool Reader::getValue(Value &result) {
 		while (*cur) {
 			switch (*cur) {
 				case '\n':
@@ -104,29 +104,36 @@ namespace json {
 				case '7':
 				case '8':
 				case '9':
-					return readNumber();
+					result = readNumber();
+					return true;
 				case '{':
-					return readObject();
+					result = readObject();
+					return true;
 				case '[':
-					return readArray();
+					result = readArray();
+					return true;
 				case '"':
-					return readString();
+					result = readString();
+					return true;
 				case 'n': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'u' && cur[2] == 'l' && cur[3] == 'l') {
 						cur+=4;
-						return Value();
+						result = Value();
+						return true;
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case 't': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'r' && cur[2] == 'u' && cur[3] == 'e') {
 						cur+=4;
-						return Value(true);
+						result = Value(true);
+						return true;
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case 'f': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'a' && cur[2] == 'l' && cur[3] == 's' && cur[4] == 'e') {
 						cur+=5;
-						return Value(false);
+						result = Value(false);
+						return true;
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case '/': //non-json comment
@@ -140,7 +147,7 @@ namespace json {
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 			}
 		}
-		throw parser_error(line,cur-lastbr,"EOF Reached");
+		return false;
 	}
 	
 	Value Reader::readNumber() {
@@ -246,7 +253,9 @@ namespace json {
 					}
 					if (key && !keyfound) *cur = '\0';
 					cur++;
-					val = getValue();
+					if (!getValue(val)) {
+						throw parser_error(line,cur-lastbr,"EOF reached while parsing object");
+					}
 					object.setMember(std::string(key),val);
 					key = NULL;
 					keyfound = false;
@@ -286,7 +295,9 @@ namespace json {
 					cur++;
 					return array;
 				default:
-					next = getValue();
+					if (!getValue(next)) {
+						throw parser_error(line,cur-lastbr,"EOF reached while parsing array");
+					}
 					array.data.array->push_back(next);
 			}
 		}
@@ -345,8 +356,10 @@ namespace json {
 				}
 				break;
 			case TNULL:
-				out << "NULL";
+				out << "null";
 				break;
+			case TBOOL:
+				out << (value.data.boolean ? "true" : "false");
 		}
 	}
 

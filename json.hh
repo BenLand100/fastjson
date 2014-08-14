@@ -63,10 +63,10 @@ namespace json {
 			inline Value(TReal real) : refcount(new TUInteger(0)), type(TREAL) { data.real = real; }
 			inline Value(TBool boolean) : refcount(new TUInteger(0)), type(TBOOL) { data.boolean = boolean; }
 			inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { init(); (*data.string) = string; }
-			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; (*refcount)++; }
+			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; if (refcount) (*refcount)++; }
 			inline ~Value() { decref(); }
 			
-			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; (*refcount)++; }
+			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; if (refcount) (*refcount)++; }
 			
 			void reset(Type type);
 			inline void reset() { reset(TNULL); }
@@ -129,7 +129,7 @@ namespace json {
 			Reader(std::istream &stream);
 			~Reader();
 			
-			Value getValue();
+			bool getValue(Value &result);
 			
 		protected:
 			char *data,*cur,*lastbr;
