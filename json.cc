@@ -51,22 +51,10 @@ namespace json {
 			case TSTRING:
 				delete data.string;
 				break;
-			case TOBJECT: {
-					TObject::iterator it = data.object->begin();
-					TObject::iterator end = data.object->end();
-					for ( ; it != end; it++) {
-						delete it->second;
-					}
-				}
+			case TOBJECT:
 				delete data.object;
 				break;   
-			case TARRAY: {
-					TArray::iterator it = data.array->begin();
-					TArray::iterator end = data.array->end();
-					for ( ; it != end; it++) {
-						delete *it;
-					}
-				}
+			case TARRAY: 
 				delete data.array;
 				break;
 		}
@@ -92,7 +80,7 @@ namespace json {
 		delete data;
 	}
 
-	Value *Reader::getValue() {
+	Value Reader::getValue() {
 		while (*cur) {
 			switch (*cur) {
 				case '\n':
@@ -126,19 +114,19 @@ namespace json {
 				case 'n': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'u' && cur[2] == 'l' && cur[3] == 'l') {
 						cur+=4;
-						return new Value();
+						return Value();
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case 't': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'r' && cur[2] == 'u' && cur[3] == 'e') {
 						cur+=4;
-						return new Value(true);
+						return Value(true);
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case 'f': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'a' && cur[2] == 'l' && cur[3] == 's' && cur[4] == 'e') {
 						cur+=5;
-						return new Value(false);
+						return Value(false);
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 				case '/': //non-json comment
@@ -152,10 +140,10 @@ namespace json {
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 			}
 		}
-		return NULL; //Really EOF - no more values to get
+		throw parser_error(line,cur-lastbr,"EOF Reached");
 	}
 	
-	Value* Reader::readNumber() {
+	Value Reader::readNumber() {
 		bool real = false;
 		bool exp = false;
 		char *start = cur;
@@ -167,12 +155,12 @@ namespace json {
 				case 'u': //non-json unsigned
 					*cur = '\0';
 					cur++;
-					return new Value((TUInteger)atoi(start));
+					return Value((TUInteger)atoi(start));
 				case 'f': //non-json explicit real
 				case 'd': //non-json explicit real
 					*cur = '\0';
 					cur++;
-					return new Value((TReal)atof(start));
+					return Value((TReal)atof(start));
 				case '.':
 					real = true;
 				case '+':
@@ -192,11 +180,11 @@ namespace json {
 				default: {
 					char next = *cur;
 					*cur = '\0';
-					Value *val;
+					Value val;
 					if (real || exp) {
-						val = new Value((TReal)atof(start));
+						val = Value((TReal)atof(start));
 					} else {
-						val = new Value((TInteger)atoi(start));
+						val = Value((TInteger)atoi(start));
 					}
 					*cur = next;
 					return val;
@@ -206,7 +194,7 @@ namespace json {
 		throw parser_error(line,cur-lastbr,"Reached EOF while parsing numeric");
 	}
 	
-	Value* Reader::readString() {
+	Value Reader::readString() {
 		char *start = ++cur;
 		while (*cur) {
 			switch (*(cur++)) {
@@ -215,18 +203,18 @@ namespace json {
 					break;
 				case '\"':
 					cur[-1] = '\0';
-					return new Value(unescapeString(std::string(start)));
+					return Value(unescapeString(std::string(start)));
 			}
 		}
 		throw parser_error(line,cur-lastbr,"Reached EOF while parsing string");
 	}
 	
-	Value* Reader::readObject() {
-		Value *object = new Value();
-		object->reset(TOBJECT);
+	Value Reader::readObject() {
+		Value object = Value();
+		object.reset(TOBJECT);
 		char *key = NULL;
 		bool keyfound = false;
-		Value *val = NULL;
+		Value val = Value();
 		cur++;
 		while (*cur) {
 			switch (*cur) {
@@ -259,15 +247,14 @@ namespace json {
 					if (key && !keyfound) *cur = '\0';
 					cur++;
 					val = getValue();
-					object->setMember(std::string(key),val);
+					object.setMember(std::string(key),val);
 					key = NULL;
-					val = NULL;
 					keyfound = false;
 					break;
 				case '\"':
 					cur++;
 					key = cur;
-					delete readString();
+					readString();
 					keyfound = true;
 					break;
 				default:
@@ -281,10 +268,10 @@ namespace json {
 		throw parser_error(line,cur-lastbr,"Reached EOF while parsing object");
 	}
 	
-	Value* Reader::readArray() {
-		Value *array = new Value();
-		array->reset(TARRAY);
-		Value *next = NULL;
+	Value Reader::readArray() {
+		Value array = Value();
+		array.reset(TARRAY);
+		Value next = Value();
 		cur++;
 		while (*cur) {
 			switch (*cur) {
@@ -300,10 +287,7 @@ namespace json {
 					return array;
 				default:
 					next = getValue();
-					if (!next) {
-						throw parser_error(line,cur-lastbr,"Malformed array elements");
-					}
-					array->data.array->push_back(next);
+					array.data.array->push_back(next);
 			}
 		}
 		throw parser_error(line,cur-lastbr,"Reached EOF while parsing array");
@@ -317,29 +301,29 @@ namespace json {
 		
 	}
 
-	void Writer::putValue(Value *value) {
+	void Writer::putValue(Value value) {
 		writeValue(value);
 		out << '\n';
 	}
 	
 	//This could make prettier output
-	void Writer::writeValue(Value *value) {
-		switch (value->type) {
+	void Writer::writeValue(Value value) {
+		switch (value.type) {
 			case TINTEGER:
-				out << value->data.integer;
+				out << value.data.integer;
 				break;
 			case TUINTEGER:
-				out << value->data.uinteger << 'u';
+				out << value.data.uinteger << 'u';
 				break;
 			case TREAL:
-				out << value->data.real;
+				out << value.data.real;
 				break;
 			case TSTRING:
-				out << escapeString(*(value->data.string));
+				out << escapeString(*(value.data.string));
 				break;
 			case TOBJECT: {
-					TObject::iterator it = value->data.object->begin();
-					TObject::iterator end = value->data.object->end();
+					TObject::iterator it = value.data.object->begin();
+					TObject::iterator end = value.data.object->end();
 					out << "{\n";
 					for ( ; it != end; it++) {
 						out << '\"' << it->first << "\" : ";
@@ -350,8 +334,8 @@ namespace json {
 				}
 				break;   
 			case TARRAY: {
-					TArray::iterator it = value->data.array->begin();
-					TArray::iterator end = value->data.array->end();
+					TArray::iterator it = value.data.array->begin();
+					TArray::iterator end = value.data.array->end();
 					out << '[';
 					for ( ; it != end; it++) {
 						writeValue(*it);

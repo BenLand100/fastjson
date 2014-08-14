@@ -37,8 +37,8 @@ namespace json {
 	typedef double TReal;
 	typedef bool TBool;
 	typedef std::string TString;
-	typedef std::map<TString,Value*> TObject;
-	typedef std::vector<Value*> TArray;
+	typedef std::map<TString,Value> TObject;
+	typedef std::vector<Value> TArray;
 
 	//type ids used by Value
 	enum Type {
@@ -63,7 +63,7 @@ namespace json {
 			inline Value(TReal real) : refcount(new TUInteger(0)), type(TREAL) { data.real = real; }
 			inline Value(TBool boolean) : refcount(new TUInteger(0)), type(TBOOL) { data.boolean = boolean; }
 			inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { init(); (*data.string) = string; }
-			inline Value(Value &other) { type = other.type; data = other.data; refcount = other.refcount; (*refcount)++; }
+			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; (*refcount)++; }
 			inline ~Value() { decref(); }
 			
 			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; (*refcount)++; }
@@ -78,9 +78,9 @@ namespace json {
 			inline TBool getBool() { checkType(TBOOL); return data.boolean; }
 			inline TString getString() { checkType(TSTRING); return *data.string; }
 			
-			inline Value* getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
+			inline Value getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
 			inline TUInteger getArraySize() { checkType(TARRAY); return data.array->size(); }
-			inline Value* getIndex(TUInteger index) {  checkType(TARRAY); return (*data.array)[index]; }
+			inline Value getIndex(TUInteger index) {  checkType(TARRAY); return (*data.array)[index]; }
 	
 			inline void setInteger(TInteger integer)  { checkTypeReset(TINTEGER); data.integer = integer; }
 			inline void setUINteger(TUInteger uinteger) { checkTypeReset(TUINTEGER); data.uinteger = uinteger; }
@@ -88,9 +88,9 @@ namespace json {
 			inline void setReal(TBool boolean) { checkTypeReset(TBOOL); data.boolean = boolean; }
 			inline void setString(TString string) { checkTypeReset(TSTRING); data.string = new TString(string); }
 			
-			inline void setMember(TString key, Value *value) { checkTypeReset(TOBJECT); (*data.object)[key] = value; }
+			inline void setMember(TString key, Value value) { checkTypeReset(TOBJECT); (*data.object)[key] = value; }
 			inline void setArraySize(TUInteger size) { checkTypeReset(TARRAY); data.array->resize(size); }
-			inline void setIndex(TUInteger index, Value *value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
+			inline void setIndex(TUInteger index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
 			
 		protected:
 			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } //FIXME convertible types
@@ -129,7 +129,7 @@ namespace json {
 			Reader(std::istream &stream);
 			~Reader();
 			
-			Value* getValue();
+			Value getValue();
 			
 		protected:
 			char *data,*cur,*lastbr;
@@ -137,10 +137,10 @@ namespace json {
 			
 			std::string unescapeString(std::string string);
 			
-			Value* readNumber();
-			Value* readString();
-			Value* readObject();
-			Value* readArray();
+			Value readNumber();
+			Value readString();
+			Value readObject();
+			Value readArray();
 	
 	};
 	
@@ -151,14 +151,14 @@ namespace json {
 			Writer(std::ostream &stream);
 			~Writer();
 			
-			void putValue(Value *value);
+			void putValue(Value value);
 			
 		protected:
 			std::ostream &out;
 			
 			std::string escapeString(std::string string);
 			
-			void writeValue(Value *value);
+			void writeValue(Value value);
 	
 	};  
 	

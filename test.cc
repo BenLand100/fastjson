@@ -12,11 +12,13 @@ int main(int argc, char **argv) {
     json::Reader reader(file);
     
     json::Writer writer(cout);
-    
-    json::Value *value;
-    while (value = reader.getValue()) {
-        writer.putValue(value);
-        delete value;
-    }
+    try {
+		for (;;) {
+			json::Value value = reader.getValue();
+			writer.putValue(value);
+		}
+	} catch(json::parser_error e) {
+		cout << e.what() << '\n';
+	}
 
 }
