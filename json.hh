@@ -105,7 +105,13 @@ namespace json {
 			inline TUInteger getArraySize() { checkType(TARRAY); return data.array->size(); }
 			
 			// Returns the Value at an index in a JSON array
-			inline Value getIndex(TUInteger index) {  checkType(TARRAY); return (*data.array)[index]; }
+			inline Value getIndex(TUInteger index) { checkType(TARRAY); return (*data.array)[index]; }
+			
+			// Helper methods to convert to std::vector
+			std::vector<double> toDoubleVector();
+			std::vector<int> toIntVector();
+			std::vector<bool> toBoolVector();
+			std::vector<std::string> toStringVector();
 			
 			// Setters will reset the type if necessary
 			inline void setInteger(TInteger integer)  { checkTypeReset(TINTEGER); data.integer = integer; }

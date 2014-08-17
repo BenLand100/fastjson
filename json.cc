@@ -61,6 +61,42 @@ namespace json {
 		refcount = NULL;
 	}
 
+	std::vector<double> Value::toDoubleVector() {
+		size_t size = getArraySize(); //will check that we are an array
+		std::vector<double> result(size);
+		for (int i = 0; i < size; i++) {
+			result[i] = (*data.array)[i].getReal(); //checks type every time to be safe
+		}
+		return result;
+	}
+	
+	std::vector<int> Value::toIntVector() {
+		size_t size = getArraySize(); //will check that we are an array
+		std::vector<int> result(size);
+		for (int i = 0; i < size; i++) {
+			result[i] = (*data.array)[i].getInteger(); //checks type every time to be safe
+		}
+		return result;
+	}
+	
+	std::vector<bool> Value::toBoolVector() {
+		size_t size = getArraySize(); //will check that we are an array
+		std::vector<bool> result(size);
+		for (int i = 0; i < size; i++) {
+			result[i] = (*data.array)[i].getBool(); //checks type every time to be safe
+		}
+		return result;
+	}
+	
+	std::vector<std::string> Value::toStringVector() {
+		size_t size = getArraySize(); //will check that we are an array
+		std::vector<std::string> result(size);
+		for (int i = 0; i < size; i++) {
+			result[i] = (*data.array)[i].getString(); //checks type every time to be safe
+		}
+		return result;
+	}
+	
 	Reader::Reader(std::istream &in) {
 		std::string ret;
 		char buffer[4096];
