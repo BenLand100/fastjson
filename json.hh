@@ -67,8 +67,10 @@ namespace json {
 			// Construct structured types. These values are copied into the Value and subsequently passed by reference with refcount.
 			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { data.string = new std::string(string); }
 			
-			//Copy constructor
-			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; incref(); }
+			// Copy constructor - preserves structured types and refcount tracking
+			inline Value(const Value &other) : type(other.type), data(other.data), refcount(other.refcount) { incref(); }
+			
+			// Destructor handles refcount tracking of structured types
 			inline ~Value() { decref(); }
 			
 			// Sets the lhs equal to the value (for base types) or reference (for structured types)
