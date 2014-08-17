@@ -52,20 +52,26 @@ namespace json {
 		TNULL
 	};
 	
-	//JSON Value container class
+	//JSON Value container class. Basic types (int,uint,real,bool) are stored by value, and structured types are stored by reference.
 	class Value {
+	
 		friend Reader;
 		friend Writer;
+		
 		public:
-			// Construct values directly from basic types. These are passed by value and have no refcount.
+			// Default constructs null Value (this is fast)
 			inline Value() : refcount(NULL), type(TNULL) { }
+			
+			// Construct values directly from basic types. These are passed by value and have no refcount.
 			explicit inline Value(TInteger integer) : refcount(NULL), type(TINTEGER) { data.integer = integer; }
 			explicit inline Value(TUInteger uinteger) : refcount(NULL), type(TUINTEGER) { data.uinteger = uinteger; }
 			explicit inline Value(TReal real) : refcount(NULL), type(TREAL) { data.real = real; }
 			explicit inline Value(TBool boolean) : refcount(NULL), type(TBOOL) { data.boolean = boolean; }
 			
 			// Construct structured types. These values are copied into the Value and subsequently passed by reference with refcount.
-			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { data.string = new std::string(string); }
+			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { data.string = new TString(string); }
+			explicit inline Value(TObject object) : refcount(new TUInteger(0)), type(TOBJECT) { data.object = new TObject(object); }
+			explicit inline Value(TArray array) : refcount(new TUInteger(0)), type(TARRAY) { data.array = new TArray(array); }
 			
 			// Copy constructor - preserves structured types and refcount tracking
 			inline Value(const Value &other) : type(other.type), data(other.data), refcount(other.refcount) { incref(); }
