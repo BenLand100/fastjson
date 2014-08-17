@@ -103,16 +103,25 @@ namespace json {
 			inline Value getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
 			
 			// Returns the size of a JSON array
-			inline TUInteger getArraySize() { checkType(TARRAY); return data.array->size(); }
+			inline size_t getArraySize() { checkType(TARRAY); return data.array->size(); }
 			
 			// Returns the Value at an index in a JSON array
-			inline Value getIndex(TUInteger index) { checkType(TARRAY); return (*data.array)[index]; }
+			inline Value getIndex(size_t index) { checkType(TARRAY); return (*data.array)[index]; }
 			
-			// Helper methods to convert to std::vector
-			std::vector<double> toDoubleVector();
-			std::vector<int> toIntVector();
-			std::vector<bool> toBoolVector();
-			std::vector<std::string> toStringVector();
+			// Templated casting functions (use these when possible / see below for default specializations) 
+			template <typename T> inline T cast() {
+				throw std::runtime_error("Cannot cast Value to desired type"); // Arbitrary type casts are impossible
+			}
+			
+			// Templated vector constructing method (uses templated casters to convert types)
+			template <typename T> inline std::vector<T> toVector() {
+				size_t size = getArraySize(); //will check that we are an array
+				std::vector<T> result(size);
+				for (int i = 0; i < size; i++) {
+					result[i] = (*data.array)[i].cast<T>();
+				}
+				return result;
+			}
 			
 			// Setters will reset the type if necessary
 			inline void setInteger(TInteger integer)  { checkTypeReset(TINTEGER); data.integer = integer; }
@@ -125,15 +134,15 @@ namespace json {
 			inline void setMember(TString key, Value value) { checkTypeReset(TOBJECT); (*data.object)[key] = value; }
 			
 			// Sets the size of a JSON array 
-			inline void setArraySize(TUInteger size) { checkTypeReset(TARRAY); data.array->resize(size); }
+			inline void setArraySize(size_t size) { checkTypeReset(TARRAY); data.array->resize(size); }
 			
 			// Sets the Value at an index in a JSON array
-			inline void setIndex(TUInteger index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
+			inline void setIndex(size_t index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
 			
 		protected:
 		
 			// Throws a runtime_error if the type of the Value does not match the given Type
-			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } //FIXME convertible types
+			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } 
 			
 			// Resets the type of Value of the current type does not match the given Type
 			inline void checkTypeReset(Type type) { if (this->type != type) reset(TOBJECT); }
@@ -154,18 +163,69 @@ namespace json {
 			Type type;
 			
 			// Union to hold the data with minimal space requirements
-			union Data {
-				//basic by value
+			union {
+				//basic types by value
 				TInteger integer;
 				TUInteger uinteger;
 				TReal real;
 				TBool boolean;
-				//structured by reference
+				//structured types by reference
 				TString *string;
 				TObject *object;
 				TArray *array;
 			} data;
 	};
+	
+	template <> inline std::string Value::cast<std::string>() {
+		switch (type) {
+			case TSTRING:
+				return *(data.string);
+			default:
+				throw std::runtime_error("Cannot cast Value to std::string");
+		}
+	}
+	
+	// Only integer Values can be cast as ints
+	template <> inline int Value::cast<int>() {
+		switch (type) {
+			case TINTEGER:
+				return data.integer;
+			default:
+				throw std::runtime_error("Cannot cast Value to integer");
+		}
+	}
+	
+	// All numerics can be cast to doubles
+	template <> inline double Value::cast<double>() { 
+		switch (type) {
+			case TUINTEGER:
+				return data.uinteger;
+			case TINTEGER:
+				return data.integer;
+			case TREAL:
+				return data.real;
+			default:
+				throw std::runtime_error("Cannot cast Value to double");
+		}
+	}
+	
+	// All Values are true except zero, false, and null
+	template <> inline bool Value::cast<bool>() { 
+		switch (type) {
+			case TUINTEGER:
+				return data.uinteger != 0;
+			case TINTEGER:
+				return data.integer != 0;
+			case TREAL:
+				return data.real != 0.0;
+			case TNULL:
+				return false;
+			case TBOOL:
+				return data.boolean;
+			default:
+				return true;
+		}
+	}
 	
 	//represents errors in parsing JSON values
 	class parser_error : public std::runtime_error {
