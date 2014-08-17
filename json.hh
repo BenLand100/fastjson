@@ -59,6 +59,7 @@ namespace json {
 		friend Writer;
 		
 		public:
+		
 			// Default constructs null Value (this is fast)
 			inline Value() : refcount(NULL), type(TNULL) { }
 			
@@ -118,7 +119,7 @@ namespace json {
 			inline void setUINteger(TUInteger uinteger) { checkTypeReset(TUINTEGER); data.uinteger = uinteger; }
 			inline void setReal(TReal real) { checkTypeReset(TREAL); data.real = real; }
 			inline void setReal(TBool boolean) { checkTypeReset(TBOOL); data.boolean = boolean; }
-			inline void setString(TString string) { checkTypeReset(TSTRING); data.string = new TString(string); }
+			inline void setString(TString string) { checkTypeReset(TSTRING); *data.string = string; }
 			
 			// Sets a member of a JSON object 
 			inline void setMember(TString key, Value value) { checkTypeReset(TOBJECT); (*data.object)[key] = value; }
@@ -131,7 +132,7 @@ namespace json {
 			
 		protected:
 		
-			// Throws a parser_error if the type of the Value does not match the given Type
+			// Throws a runtime_error if the type of the Value does not match the given Type
 			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } //FIXME convertible types
 			
 			// Resets the type of Value of the current type does not match the given Type
@@ -185,7 +186,7 @@ namespace json {
 			bool getValue(Value &result);
 			
 		protected:
-			//Positional data in the stream data
+			//Positional data in the stream data (gets garbled during parsing)
 			char *data,*cur,*lastbr;
 			int line;
 			

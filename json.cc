@@ -116,7 +116,7 @@ namespace json {
 	}
 
 	bool Reader::getValue(Value &result) {
-		while (*cur) {
+		for (;;) {
 			switch (*cur) {
 				case '\n':
 					line++;
@@ -178,23 +178,25 @@ namespace json {
 						break;
 					}
 					throw parser_error(line,cur-lastbr,"Malformed comment");
+				case '\0': //EOF
+					return false;
 				default:
 					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
 			}
 		}
-		return false;
+		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
 	}
 	
 	Value Reader::readNumber() {
 		bool real = false;
 		bool exp = false;
 		char *start = cur;
-		while (*cur) {
+		for (;;) {
 			switch (*cur) {
-				case 'e':
+				case 'e': //exponential
 					exp = true;
 					break;
-				case 'u': //non-json unsigned
+				case 'u': //non-json explicit unsigned
 					*cur = '\0';
 					cur++;
 					return Value((TUInteger)atoi(start));
@@ -203,7 +205,7 @@ namespace json {
 					*cur = '\0';
 					cur++;
 					return Value((TReal)atof(start));
-				case '.':
+				case '.': //real
 					real = true;
 				case '+':
 				case '-':
@@ -219,7 +221,7 @@ namespace json {
 				case '9':
 					cur++;
 					break;
-				default: {
+				default: { //any other character is end of number
 					char next = *cur;
 					*cur = '\0';
 					Value val;
@@ -233,22 +235,24 @@ namespace json {
 				}
 			}
 		}
-		throw parser_error(line,cur-lastbr,"Reached EOF while parsing numeric");
+		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
 	}
 	
 	Value Reader::readString() {
 		char *start = ++cur;
-		while (*cur) {
+		for (;;) {
 			switch (*(cur++)) {
-				case '\\':
-					cur++;
+				case '\\': 
+					cur++; //definitely an escape, so skip next character
 					break;
 				case '\"':
 					cur[-1] = '\0';
 					return Value(unescapeString(std::string(start)));
+				case '\0':
+					throw parser_error(line,cur-lastbr,"Reached EOF while parsing string");
 			}
 		}
-		throw parser_error(line,cur-lastbr,"Reached EOF while parsing string");
+		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
 	}
 	
 	Value Reader::readObject() {
@@ -258,7 +262,7 @@ namespace json {
 		bool keyfound = false;
 		Value val = Value();
 		cur++;
-		while (*cur) {
+		for (;;) {
 			switch (*cur) {
 				case ' ':
 				case '\n':
@@ -301,6 +305,8 @@ namespace json {
 					readString();
 					keyfound = true;
 					break;
+				case '\0':
+					throw parser_error(line,cur-lastbr,"Reached EOF while parsing object");
 				default:
 					if (keyfound) {
 						throw parser_error(line,cur-lastbr,*cur + " found where value expected");
@@ -309,7 +315,7 @@ namespace json {
 					cur++;
 			}
 		}
-		throw parser_error(line,cur-lastbr,"Reached EOF while parsing object");
+		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
 	}
 	
 	Value Reader::readArray() {
@@ -317,7 +323,7 @@ namespace json {
 		array.reset(TARRAY);
 		Value next = Value();
 		cur++;
-		while (*cur) {
+		for (;;) {
 			switch (*cur) {
 				case ' ':
 				case '\n':
@@ -329,6 +335,8 @@ namespace json {
 				case ']':
 					cur++;
 					return array;
+				case '\0':
+					throw parser_error(line,cur-lastbr,"Reached EOF while parsing array");
 				default:
 					if (!getValue(next)) {
 						throw parser_error(line,cur-lastbr,"EOF reached while parsing array");
@@ -336,7 +344,7 @@ namespace json {
 					array.data.array->push_back(next);
 			}
 		}
-		throw parser_error(line,cur-lastbr,"Reached EOF while parsing array");
+		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
 	}
 
 	Writer::Writer(std::ostream &stream) : out(stream) {
