@@ -57,24 +57,24 @@ namespace json {
 		friend Reader;
 		friend Writer;
 		public:
-			// Construct values directly from simple types. 
+			// Construct values directly from basic types. These are passed by value and have no refcount.
 			inline Value() : refcount(NULL), type(TNULL) { }
-			explicit inline Value(TInteger integer) : refcount(new TUInteger(0)), type(TINTEGER) { data.integer = integer; }
-			explicit inline Value(TUInteger uinteger) : refcount(new TUInteger(0)), type(TUINTEGER) { data.uinteger = uinteger; }
-			explicit inline Value(TReal real) : refcount(new TUInteger(0)), type(TREAL) { data.real = real; }
-			explicit inline Value(TBool boolean) : refcount(new TUInteger(0)), type(TBOOL) { data.boolean = boolean; }
+			explicit inline Value(TInteger integer) : refcount(NULL), type(TINTEGER) { data.integer = integer; }
+			explicit inline Value(TUInteger uinteger) : refcount(NULL), type(TUINTEGER) { data.uinteger = uinteger; }
+			explicit inline Value(TReal real) : refcount(NULL), type(TREAL) { data.real = real; }
+			explicit inline Value(TBool boolean) : refcount(NULL), type(TBOOL) { data.boolean = boolean; }
 			
-			// Construct structured types
-			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { init(); (*data.string) = string; }
+			// Construct structured types. These values are copied into the Value and subsequently passed by reference with refcount.
+			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { data.string = new std::string(string); }
 			
 			//Copy constructor
-			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; if (refcount) (*refcount)++; }
+			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; incref(); }
 			inline ~Value() { decref(); }
 			
 			// Sets the lhs equal to the value (for base types) or reference (for structured types)
-			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; if (refcount) (*refcount)++; }
+			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; incref(); }
 			
-			// Initializes the state of the Value to the default of the provided type
+			// Initializes the state of the Value to the default for structured types or unspecified for basic types
 			void reset(Type type);
 			
 			// Sets the value to null
@@ -123,14 +123,14 @@ namespace json {
 			// Resets the type of Value of the current type does not match the given Type
 			inline void checkTypeReset(Type type) { if (this->type != type) reset(TOBJECT); }
 			
-			// Decreases the refcount of a Value and cleans up if necessary
+			// Decreases the refcount of the Value and cleans up if necessary
 			inline void decref() { if (refcount && !((*refcount)--)) clean(); }
+			
+			// Increases the refcount of the Value if necessary
+			inline void incref() { if (refcount) (*refcount)++; }
 			
 			// Frees any allocated memory for this object and resets to null
 			void clean();
-			
-			// Initializes the value after a type reset
-			void init();
 		
 			// Pointer to the number of references of a structured type
 			TUInteger *refcount;

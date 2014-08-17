@@ -15,7 +15,6 @@
  *  along with fastjson. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "json.hh"
 
 #include <cstdlib>
@@ -25,23 +24,23 @@
 namespace json {
 	
 	void Value::reset(Type type) {
-		if (refcount) decref();
-		refcount = new TUInteger(0);
+		decref();
 		this->type = type;
-		init();
-	}
-	
-	void Value::init() {
 		switch (type) {
 			case TSTRING:
 				data.string = new TString();
+				refcount = new TUInteger(0);
 				return;
 			case TOBJECT:
 				data.object = new TObject();
+				refcount = new TUInteger(0);
 				return;
 			case TARRAY:
 				data.array = new TArray();
+				refcount = new TUInteger(0);
 				return;
+			default:
+				refcount = NULL;
 		}
 	}
 	
