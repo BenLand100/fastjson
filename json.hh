@@ -57,57 +57,95 @@ namespace json {
 		friend Reader;
 		friend Writer;
 		public:
+			// Construct values directly from simple types. 
 			inline Value() : refcount(NULL), type(TNULL) { }
-			inline Value(TInteger integer) : refcount(new TUInteger(0)), type(TINTEGER) { data.integer = integer; }
-			inline Value(TUInteger uinteger) : refcount(new TUInteger(0)), type(TUINTEGER) { data.uinteger = uinteger; }
-			inline Value(TReal real) : refcount(new TUInteger(0)), type(TREAL) { data.real = real; }
-			inline Value(TBool boolean) : refcount(new TUInteger(0)), type(TBOOL) { data.boolean = boolean; }
-			inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { init(); (*data.string) = string; }
+			explicit inline Value(TInteger integer) : refcount(new TUInteger(0)), type(TINTEGER) { data.integer = integer; }
+			explicit inline Value(TUInteger uinteger) : refcount(new TUInteger(0)), type(TUINTEGER) { data.uinteger = uinteger; }
+			explicit inline Value(TReal real) : refcount(new TUInteger(0)), type(TREAL) { data.real = real; }
+			explicit inline Value(TBool boolean) : refcount(new TUInteger(0)), type(TBOOL) { data.boolean = boolean; }
+			
+			// Construct structured types
+			explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { init(); (*data.string) = string; }
+			
+			//Copy constructor
 			inline Value(const Value &other) { type = other.type; data = other.data; refcount = other.refcount; if (refcount) (*refcount)++; }
 			inline ~Value() { decref(); }
 			
+			// Sets the lhs equal to the value (for base types) or reference (for structured types)
 			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; if (refcount) (*refcount)++; }
 			
+			// Initializes the state of the Value to the default of the provided type
 			void reset(Type type);
+			
+			// Sets the value to null
 			inline void reset() { reset(TNULL); }
+			
+			// Returns the type of the Value
 			inline Type getType() { return type; }
 			
+			// Getters will throw a parser_error if the type of the Value is not the requested type
 			inline TInteger getInteger() { checkType(TINTEGER); return data.integer; }
 			inline TUInteger getUInteger() { checkType(TUINTEGER); return data.uinteger; }
 			inline TReal getReal() { checkType(TREAL); return data.real; }
 			inline TBool getBool() { checkType(TBOOL); return data.boolean; }
 			inline TString getString() { checkType(TSTRING); return *data.string; }
 			
+			// Returns a member of a JSON object
 			inline Value getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
+			
+			// Returns the size of a JSON array
 			inline TUInteger getArraySize() { checkType(TARRAY); return data.array->size(); }
+			
+			// Returns the Value at an index in a JSON array
 			inline Value getIndex(TUInteger index) {  checkType(TARRAY); return (*data.array)[index]; }
-	
+			
+			// Setters will reset the type if necessary
 			inline void setInteger(TInteger integer)  { checkTypeReset(TINTEGER); data.integer = integer; }
 			inline void setUINteger(TUInteger uinteger) { checkTypeReset(TUINTEGER); data.uinteger = uinteger; }
 			inline void setReal(TReal real) { checkTypeReset(TREAL); data.real = real; }
 			inline void setReal(TBool boolean) { checkTypeReset(TBOOL); data.boolean = boolean; }
 			inline void setString(TString string) { checkTypeReset(TSTRING); data.string = new TString(string); }
 			
+			// Sets a member of a JSON object 
 			inline void setMember(TString key, Value value) { checkTypeReset(TOBJECT); (*data.object)[key] = value; }
+			
+			// Sets the size of a JSON array 
 			inline void setArraySize(TUInteger size) { checkTypeReset(TARRAY); data.array->resize(size); }
+			
+			// Sets the Value at an index in a JSON array
 			inline void setIndex(TUInteger index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
 			
 		protected:
+		
+			// Throws a parser_error if the type of the Value does not match the given Type
 			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } //FIXME convertible types
+			
+			// Resets the type of Value of the current type does not match the given Type
 			inline void checkTypeReset(Type type) { if (this->type != type) reset(TOBJECT); }
+			
+			// Decreases the refcount of a Value and cleans up if necessary
 			inline void decref() { if (refcount && !((*refcount)--)) clean(); }
+			
+			// Frees any allocated memory for this object and resets to null
 			void clean();
+			
+			// Initializes the value after a type reset
 			void init();
 		
+			// Pointer to the number of references of a structured type
 			TUInteger *refcount;
+			
+			// The current type of the Value
 			Type type;
+			
+			// Union to hold the data with minimal space requirements
 			union Data {
-				//by value
+				//basic by value
 				TInteger integer;
 				TUInteger uinteger;
 				TReal real;
 				TBool boolean;
-				//by reference
+				//structured by reference
 				TString *string;
 				TObject *object;
 				TArray *array;
@@ -129,14 +167,18 @@ namespace json {
 			Reader(std::istream &stream);
 			~Reader();
 			
+			//Returns the next value in the stream
 			bool getValue(Value &result);
 			
 		protected:
+			//Positional data in the stream data
 			char *data,*cur,*lastbr;
 			int line;
 			
+			//Converts an escaped JSON string into its literal representation
 			std::string unescapeString(std::string string);
 			
+			//Helpers to read JSON types
 			Value readNumber();
 			Value readString();
 			Value readObject();
@@ -151,13 +193,17 @@ namespace json {
 			Writer(std::ostream &stream);
 			~Writer();
 			
+			//Writes a value to the stream
 			void putValue(Value value);
 			
 		protected:
+			//The stream to write to
 			std::ostream &out;
 			
+			//Converts a literal string to its escaped representation
 			std::string escapeString(std::string string);
 			
+			//Helper to write a value to the stream
 			void writeValue(Value value);
 	
 	};  
