@@ -18,12 +18,11 @@
 #ifndef _JSON
 #define _JSON
 
-#include <iostream>
-#include <string>
 #include <vector>
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 
 namespace json {
 	
@@ -185,12 +184,37 @@ namespace json {
 			} data;
 	};
 	
+	// Everything can be cast to a string in one way or another
 	template <> inline std::string Value::cast<std::string>() {
 		switch (type) {
+			case TINTEGER: {
+				std::stringstream out; out << data.integer;
+				return out.str();
+			}
+			case TUINTEGER: {
+				std::stringstream out; out << data.uinteger;
+				return out.str();
+			}
+			case TREAL: {
+				std::stringstream out; out << data.real;
+				return out.str();
+			}
+			case TBOOL:
+				return data.boolean ? "true" : "false";
+			case TNULL:
+				return "null";
 			case TSTRING:
 				return *(data.string);
+			case TARRAY: {
+				std::stringstream out; out << "ARR{" << (void*)data.array << '}';
+				return out.str();
+			}
+			case TOBJECT: {
+				std::stringstream out; out << "ARR{" << (void*)data.object << '}';
+				return out.str();
+			}
 			default:
-				throw std::runtime_error("Cannot cast Value to std::string");
+				throw std::runtime_error("Value could not be cast to string (forgotten?)");
 		}
 	}
 	
