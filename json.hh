@@ -91,6 +91,9 @@ namespace json {
 			// Sets the lhs equal to the value (for base types) or reference (for structured types)
 			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; incref(); }
 			
+			inline Value& operator[](const std::string &key) { return getMember(key); }
+			inline Value& operator[](const size_t index) { return getIndex(index); }
+			
 			// Initializes the state of the Value to the default for structured types or unspecified for basic types
 			void reset(Type type);
 			
@@ -108,13 +111,13 @@ namespace json {
 			inline TString getString() { checkType(TSTRING); return *data.string; }
 			
 			// Returns a member of a JSON object
-			inline Value getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
+			inline Value& getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
 			
 			// Returns the size of a JSON array
 			inline size_t getArraySize() { checkType(TARRAY); return data.array->size(); }
 			
 			// Returns the Value at an index in a JSON array
-			inline Value getIndex(size_t index) { checkType(TARRAY); return (*data.array)[index]; }
+			inline Value& getIndex(size_t index) { checkType(TARRAY); return (*data.array)[index]; }
 			
 			// Templated casting functions (use these when possible / see below for default specializations) 
 			template <typename T> inline T cast() {
