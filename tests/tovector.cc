@@ -20,7 +20,8 @@ int main(int argc, char **argv) {
 				writer.putValue(value);
 				cout << " to int[]... ";
 				vector<int> arr = value.toVector<int>();
-				cout << "success!\n";
+				json::Value tmp(arr);
+				writer.putValue(tmp);
 			} catch(runtime_error e) {
 				cout << e.what() << '\n';
 			}
@@ -29,7 +30,8 @@ int main(int argc, char **argv) {
 				writer.putValue(value);
 				cout << " to double[]... ";
 				vector<double> arr = value.toVector<double>();
-				cout << "success!\n";
+				json::Value tmp(arr);
+				writer.putValue(tmp);
 			} catch(runtime_error e) {
 				cout << e.what() << '\n';
 			}
@@ -38,7 +40,8 @@ int main(int argc, char **argv) {
 				writer.putValue(value);
 				cout << " to bool[]... ";
 				vector<bool> arr = value.toVector<bool>();
-				cout << "success!\n";
+				json::Value tmp(arr);
+				writer.putValue(tmp);
 			} catch(runtime_error e) {
 				cout << e.what() << '\n';
 			}

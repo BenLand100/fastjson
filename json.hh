@@ -74,6 +74,15 @@ namespace json {
 			explicit inline Value(TObject object) : refcount(new TUInteger(0)), type(TOBJECT) { data.object = new TObject(object); }
 			explicit inline Value(TArray array) : refcount(new TUInteger(0)), type(TARRAY) { data.array = new TArray(array); }
 			
+			// Constructs a JSON array from a vector (assuming the compile type conversions are possible)
+			template <typename T> Value(const std::vector<T> &ref) : refcount(new TUInteger(0)), type(TARRAY) {
+				const size_t size = ref.size();
+				data.array = new TArray(size);
+				for (size_t i = 0; i < size; i++) {
+					(*data.array)[i] = Value(ref[i]);
+				}
+			}
+			
 			// Copy constructor - preserves structured types and refcount tracking
 			inline Value(const Value &other) : type(other.type), data(other.data), refcount(other.refcount) { incref(); }
 			
@@ -115,7 +124,7 @@ namespace json {
 			
 			// Templated vector constructing method (uses templated casters to convert types)
 			template <typename T> inline std::vector<T> toVector() {
-				size_t size = getArraySize(); //will check that we are an array
+				const size_t size = getArraySize(); //will check that we are an array
 				std::vector<T> result(size);
 				for (int i = 0; i < size; i++) {
 					result[i] = (*data.array)[i].cast<T>();
