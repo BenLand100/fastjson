@@ -61,6 +61,21 @@ namespace json {
 		refcount = NULL;
 	}
 	
+	std::vector<std::string> Value::getMembers() const {
+	    checkType(TOBJECT);
+	    std::vector<std::string> keys(data.object->size());
+	    size_t i = 0;
+	    for (TObject::iterator pair = data.object->begin(); pair != data.object->end(); pair++) {
+	        keys[i++] = pair->first;
+	    }
+	    return keys;
+	}
+	
+	bool Value::isMember(std::string key) const {
+	    checkType(TOBJECT);
+	    return data.object->find(key) != data.object->end();
+	}
+	
 	Reader::Reader(std::istream &in) {
 		std::string ret;
 		char buffer[4096];
@@ -71,6 +86,15 @@ namespace json {
 		cur = data;
 		memcpy(data,ret.c_str(),ret.length());
 		data[ret.length()] = '\0';
+		line = 1;
+		lastbr = cur;
+	}
+	
+	Reader::Reader(const std::string &str) {
+		data = new char[str.length()+1];
+		cur = data;
+		memcpy(data,str.c_str(),str.length());
+		data[str.length()] = '\0';
 		line = 1;
 		lastbr = cur;
 	}

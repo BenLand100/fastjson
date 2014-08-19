@@ -54,8 +54,8 @@ namespace json {
 	//JSON Value container class. Basic types (int,uint,real,bool) are stored by value, and structured types are stored by reference.
 	class Value {
 	
-		friend Reader;
-		friend Writer;
+		friend class Reader;
+		friend class Writer;
 		
 		public:
 		
@@ -83,16 +83,17 @@ namespace json {
 			}
 			
 			// Copy constructor - preserves structured types and refcount tracking
-			inline Value(const Value &other) : type(other.type), data(other.data), refcount(other.refcount) { incref(); }
+			inline Value(const Value &other) : refcount(other.refcount), type(other.type), data(other.data) { incref(); }
 			
 			// Destructor handles refcount tracking of structured types
 			inline ~Value() { decref(); }
 			
 			// Sets the lhs equal to the value (for base types) or reference (for structured types)
-			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; incref(); }
+			inline Value& operator=(const Value& other) { decref(); data = other.data; type = other.type; refcount = other.refcount; incref(); return *this; }
+			template <typename T> inline Value& operator=(const T& val) { return operator=(Value(val)); }
 			
-			inline Value& operator[](const std::string &key) { return getMember(key); }
-			inline Value& operator[](const size_t index) { return getIndex(index); }
+			inline Value& operator[](const std::string &key) const { return getMember(key); }
+			inline Value& operator[](const size_t index) const { return getIndex(index); }
 			
 			// Initializes the state of the Value to the default for structured types or unspecified for basic types
 			void reset(Type type);
@@ -101,38 +102,48 @@ namespace json {
 			inline void reset() { reset(TNULL); }
 			
 			// Returns the type of the Value
-			inline Type getType() { return type; }
+			inline Type getType() const { return type; }
 			
 			// Getters will throw a parser_error if the type of the Value is not the requested type
-			inline TInteger getInteger() { checkType(TINTEGER); return data.integer; }
-			inline TUInteger getUInteger() { checkType(TUINTEGER); return data.uinteger; }
-			inline TReal getReal() { checkType(TREAL); return data.real; }
-			inline TBool getBool() { checkType(TBOOL); return data.boolean; }
-			inline TString getString() { checkType(TSTRING); return *data.string; }
+			inline TInteger getInteger() const { checkType(TINTEGER); return data.integer; }
+			inline TUInteger getUInteger() const { checkType(TUINTEGER); return data.uinteger; }
+			inline TReal getReal() const { checkType(TREAL); return data.real; }
+			inline TBool getBool() const { checkType(TBOOL); return data.boolean; }
+			inline TString getString() const { checkType(TSTRING); return *data.string; }
 			
 			// Returns a member of a JSON object
-			inline Value& getMember(TString key) { checkType(TOBJECT); return (*data.object)[key]; }
+			inline Value& getMember(TString key) const { checkType(TOBJECT); return (*data.object)[key]; }
 			
 			// Returns the size of a JSON array
-			inline size_t getArraySize() { checkType(TARRAY); return data.array->size(); }
+			inline size_t getArraySize() const { checkType(TARRAY); return data.array->size(); }
 			
 			// Returns the Value at an index in a JSON array
-			inline Value& getIndex(size_t index) { checkType(TARRAY); return (*data.array)[index]; }
+			inline Value& getIndex(size_t index) const { checkType(TARRAY); return (*data.array)[index]; }
 			
+#ifndef __CINT__
+
 			// Templated casting functions (use these when possible / see below for default specializations) 
-			template <typename T> inline T cast() {
+			template <typename T> inline T cast() const {
 				throw std::runtime_error("Cannot cast Value to desired type"); // Arbitrary type casts are impossible
 			}
 			
 			// Templated vector constructing method (uses templated casters to convert types)
-			template <typename T> inline std::vector<T> toVector() {
+			template <typename T> inline std::vector<T> toVector() const {
 				const size_t size = getArraySize(); //will check that we are an array
 				std::vector<T> result(size);
-				for (int i = 0; i < size; i++) {
+				for (size_t  i = 0; i < size; i++) {
 					result[i] = (*data.array)[i].cast<T>();
 				}
 				return result;
 			}
+
+#endif
+			
+			// Returns a vector of all the keys in the JSON object
+			std::vector<std::string> getMembers() const;
+			
+			// Returns true if the key exists in the JSON object
+			bool isMember(std::string key) const;
 			
 			// Setters will reset the type if necessary
 			inline void setInteger(TInteger integer)  { checkTypeReset(TINTEGER); data.integer = integer; }
@@ -153,7 +164,7 @@ namespace json {
 		protected:
 		
 			// Throws a runtime_error if the type of the Value does not match the given Type
-			inline void checkType(Type type) { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } 
+			inline void checkType(Type type) const { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } 
 			
 			// Resets the type of Value of the current type does not match the given Type
 			inline void checkTypeReset(Type type) { if (this->type != type) reset(TOBJECT); }
@@ -187,8 +198,10 @@ namespace json {
 			} data;
 	};
 	
+#ifndef __CINT__
+	
 	// Everything can be cast to a string in one way or another
-	template <> inline std::string Value::cast<std::string>() {
+	template <> inline std::string Value::cast<std::string>() const {
 		switch (type) {
 			case TINTEGER: {
 				std::stringstream out; out << data.integer;
@@ -222,7 +235,7 @@ namespace json {
 	}
 	
 	// Only integer Values can be cast as ints
-	template <> inline int Value::cast<int>() {
+	template <> inline int Value::cast<int>() const {
 		switch (type) {
 			case TINTEGER:
 				return data.integer;
@@ -232,7 +245,7 @@ namespace json {
 	}
 	
 	// All numerics can be cast to doubles
-	template <> inline double Value::cast<double>() { 
+	template <> inline double Value::cast<double>() const { 
 		switch (type) {
 			case TUINTEGER:
 				return data.uinteger;
@@ -246,7 +259,7 @@ namespace json {
 	}
 	
 	// All Values are true except zero, false, and null
-	template <> inline bool Value::cast<bool>() { 
+	template <> inline bool Value::cast<bool>() const { 
 		switch (type) {
 			case TUINTEGER:
 				return data.uinteger != 0;
@@ -262,6 +275,8 @@ namespace json {
 				return true;
 		}
 	}
+
+#endif
 	
 	//represents errors in parsing JSON values
 	class parser_error : public std::runtime_error {
@@ -276,6 +291,10 @@ namespace json {
 		public:
 			//Reads the entire stream immediately
 			Reader(std::istream &stream);
+			
+			//Copies the string into the internal buffer
+			Reader(const std::string &str);
+			
 			~Reader();
 			
 			//Returns the next value in the stream
@@ -302,6 +321,8 @@ namespace json {
 		public:
 			//Only writes to the stream when requested
 			Writer(std::ostream &stream);
+			//Copies the string into internal buffer
+			Writer(std::string &string);
 			~Writer();
 			
 			//Writes a value to the stream
