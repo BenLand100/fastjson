@@ -175,6 +175,8 @@ namespace json {
 					if (cur[1] == '/') {
 						cur++;
 						while (*(cur++) != '\n') { }
+						line++;
+						lastbr = cur;
 						break;
 					}
 					throw parser_error(line,cur-lastbr,"Malformed comment");
@@ -269,6 +271,8 @@ namespace json {
 					if (cur[1] == '/') {
 						cur++;
 						while (*(cur++) != '\n') { }
+						line++;
+						lastbr = cur;
 						break;
 					}
 					throw parser_error(line,cur-lastbr,"Malformed comment");
@@ -339,6 +343,8 @@ namespace json {
 					if (cur[1] == '/') {
 						cur++;
 						while (*(cur++) != '\n') { }
+						line++;
+						lastbr = cur;
 						break;
 					}
 					throw parser_error(line,cur-lastbr,"Malformed comment");
