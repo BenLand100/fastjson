@@ -271,7 +271,6 @@ namespace json {
 					cur++;
 					return Value((TUInteger)atoi(start));
 				case 'd': //non-json explicit real OR strange exponential
-				    if (exp) throw parser_error(line,cur-lastbr,"Malformed exponential");
 				    switch (cur[1]) {
 				        case '+':
 				        case '-':
@@ -285,12 +284,15 @@ namespace json {
 				        case '7':
 				        case '8':
 				        case '9':
+				            if (exp) throw parser_error(line,cur-lastbr,"Malformed exponential");
 				            exp = true;
 				    }
 				    if (exp) {
 				        *cur = 'e'; //this is ugly but the syntax I'm trying to parse is also ugly
+				        cur++;
 				        break;
 				    }
+				    //intentional fallthrough
 				case 'f': //non-json explicit real
 					*cur = '\0';
 					cur++;
