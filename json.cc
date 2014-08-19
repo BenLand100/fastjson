@@ -82,9 +82,9 @@ namespace json {
 	    this->pretty = pretty.str();
 	}
 	
-    parser_error::~parser_error() noexcept { }
+    parser_error::~parser_error() throw () { }
     
-    const char* parser_error::what() const noexcept {
+    const char* parser_error::what() const throw () {
         return pretty.c_str();
     }
 	
@@ -265,9 +265,18 @@ namespace json {
 		cur++;
 		for (;;) {
 			switch (*cur) {
-				case ' ':
+				case '/': //non-json comment
+					if (cur[1] == '/') {
+						cur++;
+						while (*(cur++) != '\n') { }
+						break;
+					}
+					throw parser_error(line,cur-lastbr,"Malformed comment");
 				case '\n':
+					line++;
 				case '\r':
+					lastbr = cur+1;
+				case ' ':
 				case '\t':
 					if (key && !keyfound) {
 						*cur = '\0';
@@ -310,7 +319,7 @@ namespace json {
 					throw parser_error(line,cur-lastbr,"Reached EOF while parsing object");
 				default:
 					if (keyfound) {
-						throw parser_error(line,cur-lastbr,*cur + " found where value expected");
+						throw parser_error(line,cur-lastbr,"Unexpected character where value expected");
 					}
 					if (!key) key = cur;
 					cur++;
@@ -326,9 +335,18 @@ namespace json {
 		cur++;
 		for (;;) {
 			switch (*cur) {
-				case ' ':
+				case '/': //non-json comment
+					if (cur[1] == '/') {
+						cur++;
+						while (*(cur++) != '\n') { }
+						break;
+					}
+					throw parser_error(line,cur-lastbr,"Malformed comment");
 				case '\n':
+					line++;
 				case '\r':
+					lastbr = cur+1;
+				case ' ':
 				case '\t':
 				case ',':
 					cur++;
@@ -349,6 +367,7 @@ namespace json {
 			                array.data.array->push_back(next);
 			            }
 			        }
+			        break;
 			    }
 				case ']':
 					cur++;

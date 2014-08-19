@@ -282,8 +282,8 @@ namespace json {
 	class parser_error : public std::exception {
 		public:
 			parser_error(const int line_, const int pos_, std::string desc);
-			virtual ~parser_error() noexcept;
-			virtual const char* what() const noexcept;
+			virtual ~parser_error() throw ();
+			virtual const char* what() const throw ();
 		protected:
 			const int line, pos;
 			std::string desc, pretty;
