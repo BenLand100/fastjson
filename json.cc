@@ -183,6 +183,7 @@ namespace json {
 			switch (*cur) {
 				case 'e': //exponential
 					exp = true;
+					cur++;
 					break;
 				case 'u': //non-json explicit unsigned
 					*cur = '\0';
