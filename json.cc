@@ -217,6 +217,51 @@ namespace json {
 		char *start = cur;
 		for (;;) {
 			switch (*cur) {
+			    case 'x': //non-json hex
+			        if (cur-start == 1 && start[0] == '0') {
+			            cur++;
+			            start = cur;
+			            for (;;) {
+			                switch (*cur) {
+			                    case 'A':
+			                    case 'a':
+			                    case 'B':
+			                    case 'b':
+			                    case 'C':
+			                    case 'c':
+			                    case 'D':
+			                    case 'd':
+			                    case 'E':
+			                    case 'e':
+			                    case 'F':
+			                    case 'f':
+			                    case '0':
+			                    case '1':
+			                    case '2':
+			                    case '3':
+			                    case '4':
+			                    case '5':
+			                    case '6':
+			                    case '7':
+			                    case '8':
+			                    case '9':
+			                        cur++;
+			                        break;
+			                    default: {
+				                    char next = *cur;
+				                    *cur = '\0';
+				                    TUInteger hex;
+				                    std::stringstream temp;
+				                    temp << std::hex << start;
+				                    temp >> hex;
+				                    *cur = next;
+				                    return Value(hex);
+			                    }
+			                }
+			            }
+			        } else {
+			            throw parser_error(line,cur-lastbr,"Malformed hex number");
+			        }
 				case 'e': //exponential
 					exp = true;
 					cur++;
