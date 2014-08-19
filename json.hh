@@ -279,11 +279,14 @@ namespace json {
 #endif
 	
 	//represents errors in parsing JSON values
-	class parser_error : public std::runtime_error {
+	class parser_error : public std::exception {
 		public:
+			parser_error(const int line_, const int pos_, std::string desc);
+			virtual ~parser_error() noexcept;
+			virtual const char* what() const noexcept;
+		protected:
 			const int line, pos;
-			inline explicit parser_error(const int line_, const int pos_, const std::string& desc) : std::runtime_error(desc), line(line_), pos(pos_)  { }
-			inline explicit parser_error(const int line_, const int pos_, const char* desc) : std::runtime_error(desc), line(line_), pos(pos_) { }
+			std::string desc, pretty;
 	};
 	
 	//parses JSON values from a stream

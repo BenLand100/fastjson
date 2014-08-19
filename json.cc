@@ -76,6 +76,18 @@ namespace json {
 	    return data.object->find(key) != data.object->end();
 	}
 	
+	parser_error::parser_error(const int line_, const int pos_, std::string desc_) : line(line_), pos(pos_), desc(desc_)  {
+	    std::stringstream pretty;
+	    pretty << '[' << line << ':' << pos << "] " << desc;
+	    this->pretty = pretty.str();
+	}
+	
+    parser_error::~parser_error() noexcept { }
+    
+    const char* parser_error::what() const noexcept {
+        return pretty.c_str();
+    }
+	
 	Reader::Reader(std::istream &in) {
 		std::string ret;
 		char buffer[4096];
@@ -144,21 +156,21 @@ namespace json {
 						result = Value();
 						return true;
 					}
-					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+					throw parser_error(line,cur-lastbr,"Unexpected character");
 				case 't': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'r' && cur[2] == 'u' && cur[3] == 'e') {
 						cur+=4;
 						result = Value(true);
 						return true;
 					}
-					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+					throw parser_error(line,cur-lastbr,"Unexpected character");
 				case 'f': //https://tools.ietf.org/rfc/rfc7159.txt
 					if (cur[1] == 'a' && cur[2] == 'l' && cur[3] == 's' && cur[4] == 'e') {
 						cur+=5;
 						result = Value(false);
 						return true;
 					}
-					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+					throw parser_error(line,cur-lastbr,"Unexpected character");
 				case '/': //non-json comment
 					if (cur[1] == '/') {
 						cur++;
@@ -169,7 +181,7 @@ namespace json {
 				case '\0': //EOF
 					return false;
 				default:
-					throw parser_error(line,cur-lastbr,"Unexpected character: " + *cur);
+					throw parser_error(line,cur-lastbr,"Unexpected character");
 			}
 		}
 		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
@@ -321,6 +333,23 @@ namespace json {
 				case ',':
 					cur++;
 					break;
+			    case ':':  { //non-json value repetition
+			        cur++;
+			        Value reps;
+			        if (!getValue(reps) || reps.getType() != TINTEGER || reps.getInteger() < 0) {
+			            throw parser_error(line,cur-lastbr,"Array value repetition syntax error");
+			        }    
+			        const int nreps = reps.getInteger();
+			        // The value to be repeated has already been pushed once
+			        if (nreps == 0) { 
+			            array.data.array->pop_back();
+			        } else {
+			            array.data.array->reserve(array.data.array->size() + nreps - 1);
+			            for (int i = 1; i < nreps; i++) {
+			                array.data.array->push_back(next);
+			            }
+			        }
+			    }
 				case ']':
 					cur++;
 					return array;
