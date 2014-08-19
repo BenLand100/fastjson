@@ -17,8 +17,8 @@ int main(int argc, char **argv) {
 		while (reader.getValue(value)) {
 			writer.putValue(value);
 		}
-	} catch(json::parser_error e) {
-		cout << e.what()	 << '\n';
+	} catch (json::parser_error e) {
+		cout << "ERROR: " << e.what() << '\n';
 	}
 
 }

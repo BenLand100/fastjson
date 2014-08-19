@@ -361,7 +361,7 @@ namespace json {
 				out << value.data.real;
 				break;
 			case TSTRING:
-				out << escapeString(*(value.data.string));
+				out << '"' << escapeString(*(value.data.string)) << '"';
 				break;
 			case TOBJECT: {
 					TObject::iterator it = value.data.object->begin();
