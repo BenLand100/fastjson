@@ -172,14 +172,8 @@ namespace json {
 					}
 					throw parser_error(line,cur-lastbr,"Unexpected character");
 				case '/': //non-json comment
-					if (cur[1] == '/') {
-						cur++;
-						while (*(cur++) != '\n') { }
-						line++;
-						lastbr = cur;
-						break;
-					}
-					throw parser_error(line,cur-lastbr,"Malformed comment");
+					skipComment();
+					break;
 				case '\0': //EOF
 					return false;
 				default:
@@ -187,6 +181,34 @@ namespace json {
 			}
 		}
 		throw parser_error(line,cur-lastbr,"Should never reach here. Probably hardware error.");
+	}
+	
+	void Reader::skipComment() {
+	    if (cur[1] == '/') {
+			cur++;
+			while ((*cur) && *cur != '\n') { cur++; }
+			line++;
+			lastbr = cur+1;
+			if (*cur++) return;
+		} else if (cur[1] == '*') {
+			cur++;
+			for ( ; *cur; cur++) {
+			    switch (*cur) {
+			        case '*':
+			            if (cur[1] == '/') {
+			                cur += 2;
+			                return;
+			            }
+			            break;
+		            case '\n':
+			            line++;
+		            case '\r':
+			            lastbr = cur+1;
+			    }
+			}
+			if (*cur++) return;
+		}
+		throw parser_error(line,cur-lastbr,"Malformed comment");
 	}
 	
 	Value Reader::readNumber() {
@@ -268,14 +290,8 @@ namespace json {
 		for (;;) {
 			switch (*cur) {
 				case '/': //non-json comment
-					if (cur[1] == '/') {
-						cur++;
-						while (*(cur++) != '\n') { }
-						line++;
-						lastbr = cur;
-						break;
-					}
-					throw parser_error(line,cur-lastbr,"Malformed comment");
+					skipComment();
+					break;
 				case '\n':
 					line++;
 				case '\r':
@@ -340,14 +356,8 @@ namespace json {
 		for (;;) {
 			switch (*cur) {
 				case '/': //non-json comment
-					if (cur[1] == '/') {
-						cur++;
-						while (*(cur++) != '\n') { }
-						line++;
-						lastbr = cur;
-						break;
-					}
-					throw parser_error(line,cur-lastbr,"Malformed comment");
+					skipComment();
+					break;
 				case '\n':
 					line++;
 				case '\r':

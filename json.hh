@@ -316,6 +316,8 @@ namespace json {
 			Value readString();
 			Value readObject();
 			Value readArray();
+			
+			void skipComment();
 	
 	};
 	
