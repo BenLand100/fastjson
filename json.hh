@@ -162,9 +162,15 @@ namespace json {
 			inline void setIndex(size_t index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
 			
 		protected:
+		    
+		    // Returns a string representing the given type
+		    static std::string prettyType(Type type);
+		    
+		    // Throws a nice error message for trying to get the wrong type
+		    static void wrongType(Type actual, Type requested);
 		
 			// Throws a runtime_error if the type of the Value does not match the given Type
-			inline void checkType(Type type) const { if (this->type != type) { throw std::runtime_error("JSON Value is not of the requested type"); } } 
+			inline void checkType(Type type) const { if (this->type != type) { wrongType(this->type,type); } } 
 			
 			// Resets the type of Value of the current type does not match the given Type
 			inline void checkTypeReset(Type type) { if (this->type != type) reset(TOBJECT); }
@@ -240,7 +246,7 @@ namespace json {
 			case TINTEGER:
 				return data.integer;
 			default:
-				throw std::runtime_error("Cannot cast Value to integer");
+				throw std::runtime_error("Cannot cast " + prettyType(type) + " to integer");
 		}
 	}
 	
@@ -254,7 +260,7 @@ namespace json {
 			case TREAL:
 				return data.real;
 			default:
-				throw std::runtime_error("Cannot cast Value to double");
+				throw std::runtime_error("Cannot cast " + prettyType(type) + " to double");
 		}
 	}
 	

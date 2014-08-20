@@ -73,7 +73,34 @@ namespace json {
 	
 	bool Value::isMember(std::string key) const {
 	    checkType(TOBJECT);
-	    return data.object->find(key) != data.object->end();
+	    return (data.object->find(key) != data.object->end());
+	}
+	
+	std::string Value::prettyType(Type type) {
+	    switch (type) {
+	        case TOBJECT:
+	            return "TObject";
+	        case TARRAY:
+	            return "TArray";
+	        case TSTRING:
+	            return "TString";
+	        case TBOOL:
+	            return "TBool";
+	        case TREAL:
+	            return "TReal";
+	        case TINTEGER:
+	            return "TInteger";
+	        case TUINTEGER:
+	            return "TUInteger";
+	        case TNULL:
+	            return "TNULL";
+	    }
+	}
+	
+	void Value::wrongType(Type actual, Type requested) {
+        std::stringstream pretty;
+        pretty << "JSON Value of type " << prettyType(actual) << " is not type " << prettyType(requested);
+	    throw std::runtime_error(pretty.str());
 	}
 	
 	parser_error::parser_error(const int line_, const int pos_, std::string desc_) : line(line_), pos(pos_), desc(desc_)  {
