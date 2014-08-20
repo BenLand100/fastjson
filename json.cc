@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <limits>
 
 namespace json {
 	
@@ -517,6 +518,7 @@ namespace json {
 				out << value.data.uinteger << 'u';
 				break;
 			case TREAL:
+			    out.precision(std::numeric_limits<double>::digits10);
 				out << value.data.real;
 				break;
 			case TSTRING:
