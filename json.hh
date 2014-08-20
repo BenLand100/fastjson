@@ -111,8 +111,16 @@ namespace json {
             inline TBool getBool() const { checkType(TBOOL); return data.boolean; }
             inline TString getString() const { checkType(TSTRING); return *data.string; }
             
-            // Returns a member of a JSON object
-            inline Value& getMember(TString key) const { checkType(TOBJECT); return (*data.object)[key]; }
+            // Returns a member of a JSON object or throws error if member does not exist
+            inline Value& getMember(TString key) const { 
+                checkType(TOBJECT); 
+                TObject::iterator iter = data.object->find(key); 
+                if (iter != data.object->end()) {
+                    return iter->second;
+                } else {
+                    throw std::runtime_error("JSON Object does not contain member " + key);
+                }
+            }
             
             // Returns the size of a JSON array
             inline size_t getArraySize() const { checkType(TARRAY); return data.array->size(); }
