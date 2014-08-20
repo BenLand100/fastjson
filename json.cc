@@ -66,7 +66,7 @@ namespace json {
         checkType(TOBJECT);
         std::vector<std::string> keys(data.object->size());
         size_t i = 0;
-        for (TObject::iterator pair = data.object->begin(); pair != data.object->end(); pair++) {
+        for (TObject::iterator pair = data.object->begin(); pair != data.object->end(); ++pair) {
             keys[i++] = pair->first;
         }
         return keys;
@@ -140,7 +140,7 @@ namespace json {
     }
     
     Reader::~Reader() {
-        delete data;
+        delete [] data;
     }
 
     bool Reader::getValue(Value &result) {
@@ -528,7 +528,7 @@ namespace json {
                     TObject::iterator it = value.data.object->begin();
                     TObject::iterator end = value.data.object->end();
                     out << "{\n";
-                    for ( ; it != end; it++) {
+                    for ( ; it != end; ++it) {
                         out << '\"' << it->first << "\" : ";
                         writeValue(it->second);
                         out << ",\n";
@@ -540,7 +540,7 @@ namespace json {
                     TArray::iterator it = value.data.array->begin();
                     TArray::iterator end = value.data.array->end();
                     out << '[';
-                    for ( ; it != end; it++) {
+                    for ( ; it != end; ++it) {
                         writeValue(*it);
                         out << ", ";
                     }
