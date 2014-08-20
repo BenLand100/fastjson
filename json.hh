@@ -243,6 +243,8 @@ namespace json {
     // Only integer Values can be cast as ints
     template <> inline int Value::cast<int>() const {
         switch (type) {
+            case TUINTEGER:
+                return data.uinteger; //strictly speaking this is unsafe, but does not lose precision
             case TINTEGER:
                 return data.integer;
             default:
