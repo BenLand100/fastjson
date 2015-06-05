@@ -38,6 +38,18 @@ namespace json {
     typedef std::string TString;
     typedef std::map<TString,Value> TObject;
     typedef std::vector<Value> TArray;
+    
+    typedef union {
+        //basic types by value
+        TInteger integer;
+        TUInteger uinteger;
+        TReal real;
+        TBool boolean;
+        //structured types by reference
+        TString *string;
+        TObject *object;
+        TArray *array;
+    } TData;
 
     //type ids used by Value
     enum Type {
@@ -62,11 +74,18 @@ namespace json {
             // Default constructs null Value (this is fast)
             inline Value() : refcount(NULL), type(TNULL) { }
             
+            // Initilize to be of a specific type
+            inline Value(Type _type) : refcount(NULL), type(TNULL) { reset(_type); }
+            
             // Construct values directly from basic types. These are passed by value and have no refcount.
             explicit inline Value(TInteger integer) : refcount(NULL), type(TINTEGER) { data.integer = integer; }
             explicit inline Value(TUInteger uinteger) : refcount(NULL), type(TUINTEGER) { data.uinteger = uinteger; }
             explicit inline Value(TReal real) : refcount(NULL), type(TREAL) { data.real = real; }
             explicit inline Value(TBool boolean) : refcount(NULL), type(TBOOL) { data.boolean = boolean; }
+            
+            // All these integer types... force them to 32 bits
+            explicit inline Value(long unsigned int uinteger) : refcount(NULL), type(TUINTEGER) { data.uinteger = (unsigned int)uinteger; }
+            explicit inline Value(long int uinteger) : refcount(NULL), type(TINTEGER) { data.integer = (unsigned int)uinteger; }
             
             // Construct structured types. These values are copied into the Value and subsequently passed by reference with refcount.
             explicit inline Value(TString string) : refcount(new TUInteger(0)), type(TSTRING) { data.string = new TString(string); }
@@ -191,17 +210,7 @@ namespace json {
             Type type;
             
             // Union to hold the data with minimal space requirements
-            union {
-                //basic types by value
-                TInteger integer;
-                TUInteger uinteger;
-                TReal real;
-                TBool boolean;
-                //structured types by reference
-                TString *string;
-                TObject *object;
-                TArray *array;
-            } data;
+            TData data;
     };
     
 #ifndef __CINT__
@@ -300,10 +309,10 @@ namespace json {
     //parses JSON values from a stream
     class Reader {
         public:
-            //Reads the entire stream immediately
+            //Reads entire stream into internal buffer immediately
             Reader(std::istream &stream);
             
-            //Copies the string into the internal buffer
+            //Copies the entire string into an internal buffer
             Reader(const std::string &str);
             
             ~Reader();
@@ -334,12 +343,14 @@ namespace json {
         public:
             //Only writes to the stream when requested
             Writer(std::ostream &stream);
-            //Copies the string into internal buffer
-            Writer(std::string &string);
+            
             ~Writer();
             
-            //Writes a value to the stream
-            void putValue(Value value);
+			//This produces JSON compliant output at the expense of:
+			//***Unsigned integers get printed as base 10 numbers, and the next parser may truncate into signed
+			//Ultimately produces object-indented text with value-per-line mentality with arrays on a single line
+			//which is similar enough to how RATDB looks without too much effort.
+            void putValue(const Value &value);
             
         protected:
             //The stream to write to
@@ -349,7 +360,7 @@ namespace json {
             std::string escapeString(std::string string);
             
             //Helper to write a value to the stream
-            void writeValue(Value value);
+            void writeValue(const Value &value, const std::string &depth = "");
     
     };  
     

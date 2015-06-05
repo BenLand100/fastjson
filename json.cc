@@ -57,6 +57,8 @@ namespace json {
             case TARRAY: 
                 delete data.array;
                 break;
+            default:
+            	break;
         }
         type = TNULL;
         refcount = NULL;
@@ -95,6 +97,8 @@ namespace json {
                 return "TUInteger";
             case TNULL:
                 return "TNULL";
+            default:
+            	return "ERROR";
         }
     }
     
@@ -503,19 +507,18 @@ namespace json {
         
     }
 
-    void Writer::putValue(Value value) {
-        writeValue(value);
+    void Writer::putValue(const Value &value) {
+        writeValue(value,"");
         out << '\n';
     }
     
-    //This could make prettier output
-    void Writer::writeValue(Value value) {
+    void Writer::writeValue(const Value &value, const std::string &depth) {
         switch (value.type) {
             case TINTEGER:
                 out << value.data.integer;
                 break;
             case TUINTEGER:
-                out << value.data.uinteger << 'u';
+                out << value.data.uinteger;
                 break;
             case TREAL:
                 out.precision(std::numeric_limits<double>::digits10);
@@ -525,24 +528,33 @@ namespace json {
                 out << '"' << escapeString(*(value.data.string)) << '"';
                 break;
             case TOBJECT: {
+            		const std::string nextdepth(depth+"    ");
                     TObject::iterator it = value.data.object->begin();
                     TObject::iterator end = value.data.object->end();
                     out << "{\n";
-                    for ( ; it != end; it++) {
-                        out << '\"' << it->first << "\" : ";
-                        writeValue(it->second);
-                        out << ",\n";
+                    if (it != end) {
+                        out << nextdepth << '\"' << it->first << "\" : ";
+                        writeValue(it->second,nextdepth);
+                        it++;
                     }
-                    out << '}';
+                    for ( ; it != end; it++) {
+                        out << ",\n" << nextdepth << '\"' << it->first << "\" : ";
+                        writeValue(it->second,nextdepth);
+                    }
+                    out << '\n' << depth << '}';
                 }
                 break;   
             case TARRAY: {
                     TArray::iterator it = value.data.array->begin();
                     TArray::iterator end = value.data.array->end();
                     out << '[';
-                    for ( ; it != end; it++) {
+                    if (it != end) {
                         writeValue(*it);
+                        it++;
+                    }
+                    for ( ; it != end; it++) {
                         out << ", ";
+                        writeValue(*it);
                     }
                     out << ']';
                 }
