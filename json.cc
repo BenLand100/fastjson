@@ -22,6 +22,7 @@
 #include <sstream>
 #include <limits>
 #include <climits>
+#include <cerrno>
 
 namespace json {
 
