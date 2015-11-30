@@ -180,6 +180,9 @@ namespace json {
             // Sets the Value at an index in a JSON array
             inline void setIndex(size_t index, Value value) { checkTypeReset(TARRAY); (*data.array)[index] = value; }
 
+            // Convenience method (for Python, uses Writer) to return a JSON-compliant string representing this object.
+            std::string toJSONString();
+
         protected:
 
             // Returns a string representing the given type

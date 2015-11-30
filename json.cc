@@ -81,6 +81,13 @@ namespace json {
         return (data.object->find(key) != data.object->end());
     }
 
+    std::string Value::toJSONString() {
+        std::stringstream stream;
+        json::Writer writer(stream);
+        writer.putValue(*this);
+        return stream.str();
+    }
+
     std::string Value::prettyType(Type type) {
         switch (type) {
             case TOBJECT:
@@ -372,7 +379,7 @@ namespace json {
                         char *end;
                         TInteger i = strtol(start,&end,10);
                         if (end != cur) throw parser_error(line,cur-lastbr,"Malformed integer");
-                        if (i == LONG_MIN && errno == ERANGE) 
+                        if (i == LONG_MIN && errno == ERANGE)
                             throw parser_error(line,cur-lastbr,"Signed integer out of bounds.");
                         if (i == LONG_MAX && errno == ERANGE) {
                             errno = 0;
